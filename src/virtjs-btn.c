@@ -85,6 +85,7 @@ int main(int argc, char *argv[])
 		goto end;
 	}
 
+	// Create virtual device named "Virtual <device name>", cloning vendor and product, and setting version to 1
 	struct uinput_user_dev vdev;
 	memset(&vdev, 0, sizeof(vdev));
 	vdev.id.bustype = BUS_VIRTUAL;
@@ -98,6 +99,7 @@ int main(int argc, char *argv[])
 	strncpy(vdev.name, vname, UINPUT_MAX_NAME_SIZE);
 	free(vname);
 
+	// Count absolute axes
 	unsigned short abs_cnt = 0;
 	for (int i = 0; i < ABS_CNT; i++) {
 		if (libevdev_has_event_code(real, EV_ABS, i)) {
@@ -105,6 +107,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	// Describe virtual device
 	ioctl(uifd, UI_SET_EVBIT, EV_SYN);
 	ioctl(uifd, UI_SET_EVBIT, EV_KEY);
 	for (int i = 0; i < abs_cnt; i++) {
@@ -150,6 +153,7 @@ int main(int argc, char *argv[])
 		{STDOUT_FILENO, POLLHUP, 0},
 	};
 
+	// Begin polling real device
 	while (poll(fds, 2, -1) > 0) {
 		if (fds[0].revents & POLLIN) {
 			struct input_event ev;
@@ -159,6 +163,7 @@ int main(int argc, char *argv[])
 				if (ev.type == 3) {
 					//printf("Code: %d, Type: %d, Value: %d\n", ev.code, ev.type, ev.value);
 					
+					// Update button state
 					signed int new_state = ev.value > vbtns[ev.code].thresh ? 1 : 0;
 					if (vbtns[ev.code].state != new_state) {
 						vbtns[ev.code].state = new_state;
@@ -171,11 +176,14 @@ int main(int argc, char *argv[])
 						btn_ev.value = new_state;
 						write(uifd, &btn_ev, sizeof(btn_ev));
 					}
-					
 				}
+
+				// Repeat cloned device state
 				write(uifd, &ev, sizeof(ev));
 			}
 		}
+
+		// Break on error or hangup
 		if (fds[1].revents & (POLLERR | POLLHUP)) {
 			break;
 		}
