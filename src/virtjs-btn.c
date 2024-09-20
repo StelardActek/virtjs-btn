@@ -159,10 +159,10 @@ int main(int argc, char *argv[])
 			struct input_event ev;
 
 			rc = libevdev_next_event(real, LIBEVDEV_READ_FLAG_BLOCKING, &ev);
-			if (rc == 0) {
-				if (ev.type == 3) {
-					//printf("Code: %d, Type: %d, Value: %d\n", ev.code, ev.type, ev.value);
-					
+			while (rc == 0) {
+				//printf("Code: %d, Type: %d, Value: %d\n", ev.code, ev.type, ev.value);
+				
+				if (ev.type == EV_ABS) {
 					// Update button state
 					signed int new_state = ev.value > vbtns[ev.code].thresh ? 1 : 0;
 					if (vbtns[ev.code].state != new_state) {
@@ -180,6 +180,8 @@ int main(int argc, char *argv[])
 
 				// Repeat cloned device state
 				write(uifd, &ev, sizeof(ev));
+
+				rc = libevdev_next_event(real, LIBEVDEV_READ_FLAG_BLOCKING, &ev);
 			}
 		}
 
