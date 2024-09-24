@@ -42,7 +42,6 @@ struct vbtn {
 int main(int argc, char *argv[])
 {
 	int rfd = 0, uifd = 0;
-	int rc;
 	struct libevdev *real = NULL, *virt = NULL;
 
 	if (argc != 2) {
@@ -55,7 +54,7 @@ int main(int argc, char *argv[])
 		return errno;
 	}
 
-	rc = libevdev_new_from_fd(rfd, &real);
+	int rc = libevdev_new_from_fd(rfd, &real);
 	if (rc < 0) {
 		fprintf(stderr, "Failed to init libevdev: %s\n", strerror(-rc));
 		return -1;
@@ -158,8 +157,13 @@ int main(int argc, char *argv[])
 		if (fds[0].revents & POLLIN) {
 			struct input_event ev;
 
-			rc = libevdev_next_event(real, LIBEVDEV_READ_FLAG_BLOCKING, &ev);
-			while (rc == 0) {
+			while (
+				libevdev_next_event(
+					real, 
+					LIBEVDEV_READ_FLAG_NORMAL | LIBEVDEV_READ_FLAG_BLOCKING, 
+					&ev
+				) == 0
+			) {
 				//printf("Code: %d, Type: %d, Value: %d\n", ev.code, ev.type, ev.value);
 				
 				if (ev.type == EV_ABS) {
@@ -180,8 +184,6 @@ int main(int argc, char *argv[])
 
 				// Repeat cloned device state
 				write(uifd, &ev, sizeof(ev));
-
-				rc = libevdev_next_event(real, LIBEVDEV_READ_FLAG_BLOCKING, &ev);
 			}
 		}
 
