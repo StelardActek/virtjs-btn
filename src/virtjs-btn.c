@@ -44,6 +44,17 @@ int main(int argc, char *argv[])
 	int rfd = 0, uifd = 0;
 	struct libevdev *real = NULL, *virt = NULL;
 
+	int lowClamp = 0;
+	char *lowClampC;
+	if ((lowClampC = getenv("VIRTJS_LOWCLAMP"))) {
+		int lowClampA = atoi(lowClampC);
+
+		if (lowClampA != 0) {
+			lowClamp = lowClampA;
+			printf("Using low clamp value: %d\n", lowClamp);
+		}
+	}
+
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s /dev/input/event\n", argv[0]);
 		return -1;
@@ -179,6 +190,12 @@ int main(int argc, char *argv[])
 						btn_ev.type = EV_KEY;
 						btn_ev.value = new_state;
 						write(uifd, &btn_ev, sizeof(btn_ev));
+					}
+
+					// Clamp values
+					if (lowClamp != 0 && ev.value < lowClamp) {
+						ev.value = 0;
+						//printf("Value clamped to 0\n");
 					}
 				}
 
